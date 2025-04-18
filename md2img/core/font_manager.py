@@ -12,47 +12,31 @@ class FontManager:
             Union[ImageFont.FreeTypeFont, ImageFont.ImageFont],
         ] = {}
 
-        # 默认字体配置 - 修改为优先使用支持中文的字体
+        # 基础字体配置
         self.default_fonts = {
-            "regular": {"cjk": "simhei.ttf", "latin": "arial.ttf"},  # 优先使用中文黑体
-            "bold": {"cjk": "simhei.ttf", "latin": "arialbd.ttf"},  # 中文黑体用于粗体
-            "italic": {
-                "cjk": "simkai.ttf",  # 使用中文楷体代替斜体
-                "latin": "ariali.ttf",
-            },
-            "monospace": {
-                "cjk": "simsun.ttc",  # 中文宋体作为等宽字体
-                "latin": "consola.ttf",
-            },
+            "regular": "MiSans-Regular.woff2",
+            "bold": "MiSans-Bold.woff2",
+            "italic": "MiSans-Thin.woff2",  # MiSans没有斜体，使用Regular代替
+            "light": "MiSans-Light.woff2",
+            "medium": "MiSans-Medium.woff2",
+            "semibold": "MiSans-Semibold.woff2",
+            "monospace": "MiSans-Regular.woff2",  # 等宽字体使用Regular代替
         }
 
-        # 附加支持中文的系统字体
-        self.cjk_fallback_fonts = [
-            "msyh.ttc",  # 微软雅黑
-            "simhei.ttf",  # 黑体
-            "simsun.ttc",  # 宋体
-            "simkai.ttf",  # 楷体
-            "simfang.ttf",  # 仿宋
-            "NotoSansSC-Regular.otf",  # Noto Sans SC
-            "NotoSerifSC-Regular.otf",  # Noto Serif SC
-            "SourceHanSansSC-Regular.otf",  # 思源黑体
-            "SourceHanSerifSC-Regular.otf",  # 思源宋体
-        ]
-
-        # 系统字体搜索路径
-        self.system_font_paths = [
+        # 字体搜索路径，优先使用内置字体
+        self.font_paths = [
+            # 内置字体路径
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "font"
+            ),
             # Windows 字体路径
             "C:/Windows/Fonts",
             # Linux 字体路径
             "/usr/share/fonts",
             "/usr/local/share/fonts",
-            "/usr/share/fonts/truetype",
-            "/usr/share/fonts/opentype",
             # MacOS 字体路径
             "/Library/Fonts",
             "/System/Library/Fonts",
-            "/System/Library/Fonts/STHeiti Light.ttc",
-            "/System/Library/Fonts/STHeiti Medium.ttc",
         ]
 
         # 用户自定义字体路径
@@ -74,9 +58,9 @@ class FontManager:
         获取指定样式的字体
 
         Args:
-            family: 字体家族（regular, monospace）
+            family: 字体家族（regular, monospace等）
             size: 字体大小
-            weight: 字体粗细（regular, bold）
+            weight: 字体粗细（regular, bold, light, medium, semibold等）
             style: 字体样式（regular, italic）
 
         Returns:
@@ -105,58 +89,50 @@ class FontManager:
         self, family: str, size: int, weight: str, style: str
     ) -> Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]:
         """尝试加载指定字体，如果失败则使用回退机制"""
-        # 确定字体文件名
+        # 确定要使用的字体文件
         font_file = None
 
-        # 处理粗体和斜体
-        if family == "regular":
-            if weight == "bold" and style == "italic":
-                family_key = "bold-italic"
-            elif weight == "bold":
-                family_key = "bold"
-            elif style == "italic":
-                family_key = "italic"
-            else:
-                family_key = "regular"
+        # 根据权重和样式选择合适的字体
+        if weight != "regular" and weight in self.default_fonts:
+            font_file = self.default_fonts[weight]
+        elif style == "italic" and "italic" in self.default_fonts:
+            font_file = self.default_fonts["italic"]
+        elif family in self.default_fonts:
+            font_file = self.default_fonts[family]
         else:
-            family_key = family
+            font_file = self.default_fonts["regular"]  # 默认使用regular
 
-        # 优先尝试加载CJK字体，确保对中文支持
-        for lang in ["cjk", "latin"]:
-            if (
-                family_key in self.default_fonts
-                and lang in self.default_fonts[family_key]
-            ):
-                font_name = self.default_fonts[family_key][lang]
+        # 合并搜索路径
+        search_paths = self.custom_font_paths + self.font_paths
 
-                # 搜索字体路径
-                for font_path in self.custom_font_paths + self.system_font_paths:
-                    font_file_path = os.path.join(font_path, font_name)
-                    if os.path.exists(font_file_path):
-                        try:
-                            font = ImageFont.truetype(font_file_path, size)
-                            return font
-                        except Exception:
-                            continue
+        # 搜索字体文件
+        font = self._try_load_font(font_file, size, search_paths)
+        if font:
+            return font
 
-        # 尝试加载CJK回退字体
-        for fallback_font in self.cjk_fallback_fonts:
-            for font_path in self.custom_font_paths + self.system_font_paths:
-                font_file_path = os.path.join(font_path, fallback_font)
-                if os.path.exists(font_file_path):
-                    try:
-                        font = ImageFont.truetype(font_file_path, size)
-                        return font
-                    except Exception:
-                        continue
+        # 如果找不到指定字体，尝试使用默认的MiSans-Regular
+        font = self._try_load_font("MiSans-Regular.woff2", size, search_paths)
+        if font:
+            return font
 
-        # 如果所有尝试都失败，使用默认字体
-        try:
-            # 尝试使用系统默认字体
-            return ImageFont.truetype("arial.ttf", size)
-        except Exception:
-            # 如果还是失败，使用PIL提供的默认字体
-            return ImageFont.load_default()
+        # 如果所有尝试都失败，使用PIL默认字体
+        return ImageFont.load_default()
+
+    def _try_load_font(
+        self, font_name: str, size: int, search_paths: list
+    ) -> Optional[Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]]:
+        """在给定路径列表中尝试加载指定字体"""
+        for font_path in search_paths:
+            if not os.path.exists(font_path):
+                continue
+
+            font_file_path = os.path.join(font_path, font_name)
+            if os.path.exists(font_file_path):
+                try:
+                    return ImageFont.truetype(font_file_path, size)
+                except Exception:
+                    continue
+        return None
 
     def clear_cache(self):
         """清除字体缓存"""

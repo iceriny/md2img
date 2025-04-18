@@ -3,7 +3,7 @@ import re
 
 from ..core.nodes.base import MDNode
 from ..core.nodes.block import BlockNode
-from ..core.nodes.inline import InlineNode, TextSpan
+from ..core.nodes.inline import InlineNode, TextSpan, LineBreak
 
 
 class LayoutEngine:
@@ -30,8 +30,33 @@ class LayoutEngine:
 
         # 遍历所有内联节点
         for node in paragraph.children:
+            # 处理换行符节点 - 强制创建新行
+            if isinstance(node, LineBreak):
+                # 如果当前行有内容，完成当前行
+                if current_line:
+                    result["lines"].append(
+                        {
+                            "items": current_line,
+                            "width": current_line_width,
+                            "height": current_line_height,
+                        }
+                    )
+                    result["height"] += current_line_height
+
+                # 开始新行
+                current_line = []
+                current_line_width = 0
+                current_line_height = 0
+
+                # 添加换行符的高度
+                line_height = node.measure_height(self.renderer, available_width)
+                result["height"] += line_height
+
+                # 继续处理下一个节点
+                continue
+
             # 文本节点可能需要根据单词进行折行
-            if isinstance(node, TextSpan):
+            elif isinstance(node, TextSpan):
                 line_info = self._layout_text(node, available_width, current_line_width)
 
                 # 处理每个文本片段

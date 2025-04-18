@@ -6,8 +6,15 @@ from typing import Optional, Union
 import os
 
 from .core.nodes.base import MDNode
-from .core.nodes.block import DocumentNode, Heading, Paragraph, HorizontalRule
-from .core.nodes.inline import TextSpan, Bold, Italic, Code
+from .core.nodes.block import (
+    DocumentNode,
+    Heading,
+    Paragraph,
+    HorizontalRule,
+    List,
+    ListItem,
+)
+from .core.nodes.inline import TextSpan, Bold, Italic, Code, LineBreak, Strikethrough
 from .core.renderer import Renderer
 from .processor import MarkdownProcessor
 from .config import BaseConfig, CustomConfig
@@ -34,7 +41,7 @@ class MD2Img:
         # 如果是字符串，自动转换为段落
         if isinstance(node, str):
             node = Paragraph(node)
-        self.root.add_child(node)
+        self.root.add(node)
         return self
 
     def __add__(self, node: Union[MDNode, str]):
@@ -52,24 +59,34 @@ class MD2Img:
             result = MD2Img(self.config)
             result.add(other)
             for child in self.root.children:
-                result.root.add_child(child)
+                result.root.add(child)
             return result
         return NotImplemented
 
     def add_heading(self, text: str, level: int = 1):
         """添加标题节点"""
-        self.root.add_child(Heading(text, level))
+        self.root.add(Heading(text, level))
         return self
 
     def add_paragraph(self, text: str):
         """添加段落节点"""
-        self.root.add_child(Paragraph(text))
+        self.root.add(Paragraph(text))
         return self
 
     def add_horizontal_rule(self):
         """添加水平分隔线"""
-        self.root.add_child(HorizontalRule())
+        self.root.add(HorizontalRule())
         return self
+
+    def add_list(self, *items, ordered=False):
+        """添加列表节点"""
+        list_node = List(*items, ordered=ordered)
+        self.root.add(list_node)
+        return self
+
+    def add_list_item(self, content, index=None):
+        """添加列表项（需要先添加到列表中才能正确渲染）"""
+        return ListItem(content, index)
 
     def from_markdown(self, markdown_text: str):
         """从Markdown文本解析节点树"""
@@ -121,4 +138,9 @@ P = lambda text: Paragraph(text)
 HR = HorizontalRule
 B = Bold
 I = Italic
+S = Strikethrough
 CODE = Code
+BR = LineBreak
+OL = lambda *items: List(*items, ordered=True)  # 有序列表
+UL = lambda *items: List(*items, ordered=False)  # 无序列表
+LI = lambda content, index=None: ListItem(content, index)  # 列表项

@@ -8,7 +8,7 @@ class MDNode:
         self.parent = None
         self.children = []
 
-    def add_child(self, child):
+    def add(self, child):
         """添加子节点"""
         child.parent = self
         self.children.append(child)
@@ -29,8 +29,8 @@ class MDNode:
         from ...core.nodes.block import DocumentNode
 
         doc = DocumentNode()
-        doc.add_child(self)
-        doc.add_child(other)
+        doc.add(self)
+        doc.add(other)
         return doc
 
     def __radd__(self, other):
