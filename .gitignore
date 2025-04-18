@@ -1,0 +1,63 @@
+# Python字节码
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.env
+.venv
+env.bak/
+venv.bak/
+.conda/
+
+# 分发/打包
+dist/
+build/
+*.egg-info/
+*.egg
+
+# 单元测试/覆盖率报告
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.pytest_cache/
+cover/
+
+# IDE相关
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# 项目特定文件
+# 忽略生成的图片文件
+*.png
+output*.png
+chinese_output.png
+
+# 日志
+*.log
+
+# Python package
+__pycache__/
+*.py[cod]
+*$py.class
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# PyPI
+*.whl
+*.tar.gz
+.pypirc
