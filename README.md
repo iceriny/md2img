@@ -31,14 +31,14 @@
 ### 从 PyPI 安装
 
 ```bash
-pip install MD2Img
+pip install md2img
 ```
 
 ### 从源码安装
 
 ```bash
-git clone https://github.com/作者名/MD2Img.git
-cd MD2Img
+git clone https://github.com/iceriny/md2img.git
+cd md2img
 pip install -e .
 ```
 
